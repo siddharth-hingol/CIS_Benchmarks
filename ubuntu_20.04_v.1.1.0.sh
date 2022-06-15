@@ -539,9 +539,110 @@ function check_retval_ne_0() {
     # 1.7.1 Ensure message of the day is configured properly
     #########################################################
     header "1.7.1 Ensure message of the day is configured properly"
-    msg 'Ensure message of the day is configured properly'
+    msg 'Verifying message of the day is configured properly'
     if [[ "$(grep -Eis "(\\\v|\\\r|\\\m|\\\s|$(grep '^ID=' /etc/os-release | cut -d= -f2 | sed -e 's/"//g'))" /etc/motd 2>&1)" =~ 0 ]];then
       success_result
     else
       failed_result
     fi
+
+    ##################################################################
+    # 1.7.2 Ensure local login warning banner is configured properly
+    ##################################################################
+    header "1.7.2 Ensure local login warning banner is configured properly"
+    msg  " Verifying local login warning banner is configured properly"
+    grep -E -i "(\\\v|\\\r|\\\m|\\\s|$(grep '^ID=' /etc/os-release | cut -d= -f2 | sed -e 's/"//g'))" /etc/issue 2>&1 > /dev/null
+    check_retval_ne_0 $?
+
+    ###################################################################
+    # 1.7.3 Ensure remote login warning banner is configured properly
+    ###################################################################
+    header "1.7.3 Ensure remote login warning banner is configured properly"
+    msg  " Verifying remote login warning banner is configured properly"
+    grep -E -i "(\\\v|\\\r|\\\m|\\\s|$(grep '^ID=' /etc/os-release | cut -d= -f2 | sed -e 's/"//g'))" /etc/issue.net 2>&1 > /dev/null
+    check_retval_ne_0 $?
+
+    ##########################################################
+    # 1.7.4 Ensure permissions on /etc/motd are configured
+    ##########################################################
+    header "1.7.4 Ensure permissions on /etc/motd"
+    msg " Ensure /etc/motd permissions are 0644 root:root"
+    if [[ $(stat -L /etc/motd 2>&1) =~ Access:.*(0644/-rw-r--r--).*Uid:.*(.*0/.*root).*Gid:.*(.*0/.*root) ]];then
+        success_result
+    else
+        failed_result
+    fi
+
+    ##########################################################
+    # 1.7.5 Ensure permissions on /etc/issue are configured
+    ##########################################################
+    header "1.7.5 Ensure permissions on /etc/issue are configured"
+    msg " Ensure /etc/issue permissions are 0644 root:root"
+    if [[ $(stat -L /etc/issue 2>&1) =~ Access:.*(0644/-rw-r--r--).*Uid:.*(.*0/.*root).*Gid:.*(.*0/.*root) ]];then
+        success_result
+    else
+        failed_result
+    fi
+
+    #############################################################
+    # 1.7.6 Ensure permissions on /etc/issue.net are configured
+    #############################################################
+    if [ $CIS_LEVEL -gt 1 ];then
+        header "1.7.6 Ensure permissions on /etc/issue.net are configured"
+        msg " Ensure /etc/issue.net permissions are 0644 root:root"
+        if [[ $(stat -L /etc/issue.net 2>&1) =~ Access:.*(0644/-rw-r--r--).*Uid:.*(.*0/.*root).*Gid:.*(.*0/.*root) ]];then
+            success_result
+        else
+            failed_result
+        fi
+    fi
+
+  #############################################################################
+  # 1.8 GNOME Display Manager
+  #############################################################################
+    ################################################
+    # 1.8.1 Ensure GNOME Display Manager is removed
+    ################################################
+    header "1.8.1 Ensure GNOME Display Manager is removed"
+    msg  "verifying gdm3 is not installed"
+    if [[ $(dpkg -s gdm3 2>&1) =~ (package \'gdm3\' is not installed) ]];then
+        success_result
+    else
+        failed_result
+    fi
+
+    ##############################################
+    # 1.8.2 Ensure GDM login banner is configured
+    ##############################################
+    header "1.8.2 Ensure GDM login banner is configured"
+    msg  "Verifying /etc/gdm3/greeter.dconf-defaults file exists"
+    if [[ $(cat /etc/gdm3/greeter.dconf-defaults 2>&1) =~ (banner-message-enable=true \n banner-message-text=) ]];then
+        success_result
+    else
+        failed_result
+    fi
+
+    ############################################
+    # 1.8.3 Ensure disable-user-list is enabled
+    ############################################
+    header "1.8.3 Ensure disable-user-list is enabled (for Ubuntu Desktop)"
+    #msg  "verifying that disable-user-list is enabled"
+    #grep -E '^\s*disable-user-list\s*=\s*true\b' 2>&1 > /dev/null
+    #check_retval_ne_0 $?
+
+    ####################################
+    # 1.8.4 Ensure XDCMP is not enabled
+    ####################################
+    header "1.8.4 Ensure XDCMP is not enabled"
+    msg  "Verifying XDCMP is not enabled"
+    grep -Eis '^\s*Enable\s*=\s*true' /etc/gdm3/custom.conf 2>&1 > /dev/null
+    check_retval_ne_0 $?
+
+  #############################################################################
+  # 1.9 Ensure updates, patches, and additional security software are installed
+  #############################################################################
+    header "1.9 Ensure updates, patches, and additional security software are installed"
+    msg  "Verifying there are no updates or patches to install"
+    apt -s upgrade 2>&1 > /dev/null 
+    check_retval_eq_0 $?
+    
